@@ -1,0 +1,82 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/rabbit
+           http://www.springframework.org/schema/rabbit/spring-rabbit.xsd
+           http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!--配置connection-factory，指定连接rabbit server参数 -->
+    <rabbit:connection-factory id="connectionFactory" username="admin" password="admin" host="localhost" port="5672"/>
+
+    <!--定义rabbit template用于数据的接收和发送,不同的类型使用自己的template -->
+    <rabbit:template id="logTemplate" connection-factory="connectionFactory" exchange="log.direct.exchange"/>
+
+    <!--通过指定下面的admin信息，当前producer中的exchange和queue会在rabbitmq服务器上自动生成 -->
+    <rabbit:admin connection-factory="connectionFactory"/>
+
+    <!--定义死信queue -->
+    <rabbit:queue name="dead.letter.direct.queue" durable="true" auto-delete="false" exclusive="false">
+        <rabbit:queue-arguments value-type="java.lang.Long">
+            <entry key="x-message-ttl">
+                <value type="java.lang.Long">60000</value>
+            </entry>
+        </rabbit:queue-arguments>
+    </rabbit:queue>
+
+    <!-- 定义死信的exchange,并且绑定死信queue-->
+    <rabbit:direct-exchange name="dead.letter.direct.exchange" durable="true" auto-delete="false">
+        <rabbit:bindings>
+            <rabbit:binding queue="dead.letter.direct.queue" key="dead.letter"></rabbit:binding>
+        </rabbit:bindings>
+    </rabbit:direct-exchange>
+
+    <!--定义用户行为的queue,并且为queue绑定死信的exchange,这样不能匹配的消息和reject或者是过期的消息都会发送到死信exchange -->
+    <rabbit:queue name="log.error.queue" durable="true" auto-delete="false" exclusive="false">
+        <rabbit:queue-arguments>
+            <entry key="x-message-ttl">
+                <value type="java.lang.Long">60000</value>
+            </entry>
+            <entry key="x-dead-letter-exchange" value="dead.letter.direct.exchange"></entry>
+            <entry key="x-dead-letter-routing-key" value="dead.letter"></entry>
+        </rabbit:queue-arguments>
+    </rabbit:queue>
+    <!--定义用户行为的queue,并且为queue绑定死信的exchange,这样不能匹配的消息和reject或者是过期的消息都会发送到死信exchange -->
+    <rabbit:queue name="log.info.queue" durable="true" auto-delete="false" exclusive="false">
+        <rabbit:queue-arguments>
+            <entry key="x-message-ttl">
+                <value type="java.lang.Long">60000</value>
+            </entry>
+            <entry key="x-dead-letter-exchange" value="dead.letter.direct.exchange"></entry>
+            <entry key="x-dead-letter-routing-key" value="dead.letter"></entry>
+        </rabbit:queue-arguments>
+    </rabbit:queue>
+
+    <!-- 定义用户行为direct exchange，并且绑定queue -->
+    <rabbit:direct-exchange name="log.direct.exchange" durable="true" auto-delete="false">
+        <rabbit:bindings>
+            <rabbit:binding queue="log.error.queue" key="error"></rabbit:binding>
+            <rabbit:binding queue="log.info.queue" key="info"></rabbit:binding>
+        </rabbit:bindings>
+    </rabbit:direct-exchange>
+
+    <!-- 定义消息接收者 -->
+    <bean id="logInfoListener" class="rabbitmq.spring.listener.LogInfoListener"></bean>
+    <bean id="logErrorListener" class="rabbitmq.spring.listener.LogErrorListener"></bean>
+
+    <!--定义线程池 预先创建N个consumer等待消费消息-->
+    <rabbit:listener-container
+            connection-factory="connectionFactory"
+            acknowledge="manual"
+            concurrency="20"
+            max-concurrency="20"
+            requeue-rejected="false">
+        <rabbit:listener ref="logInfoListener" queue-names="log.info.queue"/>
+        <rabbit:listener ref="logErrorListener" queue-names="log.error.queue"/>
+        <rabbit:listener ref="deadLetterListener" queue-names="dead.letter.direct.queue"/>
+    </rabbit:listener-container>
+
+    <!--定义生产者-->
+    <bean id="logInfoProducer" class="rabbitmq.spring.producer.LogInfoProducer"></bean>
+    <bean id="logErrorProducer" class="rabbitmq.spring.producer.LogErrorProducer"></bean>
+</beans>
