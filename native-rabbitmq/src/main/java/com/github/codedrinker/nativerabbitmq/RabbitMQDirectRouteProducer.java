@@ -9,9 +9,9 @@ import com.rabbitmq.client.Connection;
  */
 public class RabbitMQDirectRouteProducer {
 
-    public static final String EXCHANGE_NAME = "direct_exchange";
-    public static final String DEAD_LETTER_EXCHANGE = "dead_letter_exchange";
-    public static final String DEAD_LETTER_ROUTE_KEY = "dead_letter_route_key";
+    public static final String EXCHANGE_NAME = "log.direct.exchange";
+    public static final String DEAD_LETTER_EXCHANGE = "dead.letter.direct.exchange";
+    public static final String DEAD_LETTER_ROUTE_KEY = "dead.letter";
 
     public static void main(String[] argv) throws Exception {
         Connection connection = RabbitMQFactory.getFactory().newConnection();

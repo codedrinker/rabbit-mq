@@ -10,7 +10,7 @@ import java.util.Map;
  * Created by codedrinker on 10/02/2017.
  */
 public class RabbitMQDirectRouteErrorConsumer {
-    public static final String QUEUE_NAME = "direct_exchange_error_queue";
+    public static final String QUEUE_NAME = "log.error.queue";
 
     public static void main(String[] argv) throws Exception {
         Connection connection = RabbitMQFactory.getFactory().newConnection();

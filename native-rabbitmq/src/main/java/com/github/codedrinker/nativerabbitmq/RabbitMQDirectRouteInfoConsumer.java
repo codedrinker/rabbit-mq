@@ -10,7 +10,7 @@ import com.rabbitmq.client.*;
  * Created by codedrinker on 10/02/2017.
  */
 public class RabbitMQDirectRouteInfoConsumer {
-    private static final String QUEUE_NAME = "direct_exchange_info_queue";
+    private static final String QUEUE_NAME = "log.info.queue";
 
     public static void main(String[] argv) throws Exception {
         Connection connection = RabbitMQFactory.getFactory().newConnection();
