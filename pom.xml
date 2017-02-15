@@ -11,6 +11,7 @@
     <modules>
         <module>native-rabbitmq</module>
         <module>spring-rabbitmq</module>
+        <module>spring-web</module>
     </modules>
 
     <dependencies>
